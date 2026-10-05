@@ -30,7 +30,7 @@ jobs:
           chmod 600 ~/.ssh/mesh_mirror
           export GIT_SSH_COMMAND="ssh -i ~/.ssh/mesh_mirror -o StrictHostKeyChecking=accept-new"
           rm -rf /tmp/registry && git clone --depth 1 --filter=blob:none --sparse git@github.com:swipswaps/mesh-registry.git /tmp/registry
-          git -C /tmp/registry sparse-checkout set endpoints.json
+          git -C /tmp/registry sparse-checkout set --no-cone endpoints.json
           cp /tmp/registry/endpoints.json /tmp/endpoints.json
           rm -rf /tmp/registry ~/.ssh/mesh_mirror
       - name: Redact + assert
