@@ -58,8 +58,36 @@ jobs:
           print("mirror written")
           PY
       - name: Commit if changed
+        id: mirror_commit
         run: |
           git config user.name "mesh-console-mirror"
           git config user.email "mesh-console-mirror@users.noreply.github.com"
           git add frontend/public/endpoints.json
-          git diff --cached --quiet || git commit -m "mirror endpoints snapshot" && git push || true
+          if git diff --cached --quiet; then
+            echo "committed=false" >> "$GITHUB_OUTPUT"
+          else
+            git commit -m "mirror endpoints snapshot" && git push || true
+            echo "committed=true" >> "$GITHUB_OUTPUT"
+          fi
+      # NOTE: pushes made with GITHUB_TOKEN do not trigger other
+      # workflows (no cascade), so deploy-pages never fires for mirror
+      # commits. Deploy from THIS job when the snapshot changed instead.
+      - name: Setup node for deploy
+        if: steps.mirror_commit.outputs.committed == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Build + deploy
+        if: steps.mirror_commit.outputs.committed == 'true'
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+      - name: Publish to gh-pages
+        if: steps.mirror_commit.outputs.committed == 'true'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./frontend/dist
