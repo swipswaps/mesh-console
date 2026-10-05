@@ -1,0 +1,62 @@
+name: mirror-registry
+# One-way, lossy projection: private mesh-registry -> public file.
+# The redact filter is the security boundary (assert-first, not
+# review-first): any secret shape fails the workflow, nothing publishes.
+# Needs repo secret MESH_REGISTRY_PAT: fine-grained PAT, read-only,
+# scoped to swipswaps/mesh-registry contents only.
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Fetch + redact + assert
+        env:
+          MESH_REGISTRY_PAT: ${{ secrets.MESH_REGISTRY_PAT }}
+        run: |
+          python3 - <<'PY'
+          import base64, json, os, re, sys, urllib.request
+          tok = os.environ.get("MESH_REGISTRY_PAT", "")
+          if not tok:
+              print("MESH_REGISTRY_PAT not set; mirror disabled, keeping snapshot")
+              sys.exit(0)
+          req = urllib.request.Request(
+              "https://api.github.com/repos/swipswaps/mesh-registry/contents/endpoints.json",
+              headers={"Authorization": "Bearer " + tok,
+                       "Accept": "application/vnd.github+json",
+                       "X-GitHub-Api-Version": "2022-11-28",
+                       "User-Agent": "mesh-console-mirror"})
+          with urllib.request.urlopen(req, timeout=30) as r:
+              cur = json.load(r)
+          doc = json.loads(base64.b64decode(cur["content"]).decode())
+          redacted = {"nodes": {}, "updated_utc": doc.get("updated_utc")}
+          for name, info in sorted((doc.get("nodes") or {}).items()):
+              if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9.-]{0,63}", str(name)):
+                  raise SystemExit("bad node name: %r" % name)
+              redacted["nodes"][name] = {
+                  "lan": info.get("lan_ipv4"),
+                  "overlay": None,
+                  "updated_utc": info.get("updated_utc"),
+              }
+              for ip in (info.get("lan_ipv4"), info.get("egress_ipv4")):
+                  if ip is not None and not re.fullmatch(r"[0-9.]{7,15}", str(ip)):
+                      raise SystemExit("bad ipv4 shape for %s" % name)
+          out = json.dumps(redacted, indent=2) + "\n"
+          if re.search(r"sk-|apikey_|BEGIN .*PRIVATE|TOKEN=|PASSWORD=", out, re.I):
+              raise SystemExit("secret shape in mirror output; refusing to publish")
+          open("frontend/public/endpoints.json", "w").write(out)
+          print("mirror written")
+          PY
+      - name: Commit if changed
+        run: |
+          git config user.name "mesh-console-mirror"
+          git config user.email "mesh-console-mirror@users.noreply.github.com"
+          git add frontend/public/endpoints.json
+          git diff --cached --quiet || git commit -m "mirror endpoints snapshot" && git push || true
