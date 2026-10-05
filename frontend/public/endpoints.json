@@ -1,10 +1,4 @@
 {
-  "nodes": {
-    "ws24": {
-      "lan": "192.168.43.182",
-      "overlay": null,
-      "updated_utc": "2026-10-05T23:17:27Z"
-    }
-  },
-  "updated_utc": "2026-10-05T23:17:27Z"
+  "nodes": {},
+  "updated_utc": null
 }
