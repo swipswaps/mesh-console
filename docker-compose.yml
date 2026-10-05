@@ -1,0 +1,19 @@
+# Mesh console — Docker Compose (local backend).
+# The public site lives on GitHub Pages:
+#   https://swipswaps.github.io/mesh-console/
+# This file runs the optional local backend (advanced features).
+services:
+  mesh-console-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: mesh-console-backend
+    ports:
+      - "5180:5180"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5180/health', timeout=8)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s

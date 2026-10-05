@@ -1,0 +1,38 @@
+.app {
+  font-family: system-ui, sans-serif;
+  max-width: 720px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  color-scheme: dark;
+}
+
+.sub {
+  opacity: 0.7;
+}
+
+.badges {
+  display: flex;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+}
+
+.badge-offline {
+  background: #3a3a3a;
+  color: #bbb;
+}
+
+.badge-stale {
+  background: #5a4a00;
+  color: #ffd75e;
+}
+
+.badge-live {
+  background: #0c4d1e;
+  color: #7bf59b;
+}
