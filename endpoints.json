@@ -1,10 +1,15 @@
 {
   "nodes": {
-    "ws24": {
-      "lan": "192.168.43.182",
+    "fedora": {
+      "lan": "192.168.4.45",
       "overlay": null,
-      "updated_utc": "2026-10-05T23:37:10Z"
+      "updated_utc": "2026-10-06T00:02:48Z"
+    },
+    "ws24": {
+      "lan": "192.168.4.24",
+      "overlay": null,
+      "updated_utc": "2026-10-06T00:02:48Z"
     }
   },
-  "updated_utc": "2026-10-05T23:37:10Z"
+  "updated_utc": "2026-10-06T00:02:48Z"
 }
