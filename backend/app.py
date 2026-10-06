@@ -81,6 +81,22 @@ def inventory_paths() -> list:
     return [HOST_CERT, RECOVER_LOG, BENCH_JSONL, LAST_GOOD]
 
 
+@app.after_request
+def cors(response):
+    # Reads are public-safe data; allow cross-origin GETs (dev on :5173,
+    # preview on :4173, file:// shells). This grants NO access: /api/actions
+    # still demands its bearer token, which browsers only send after an
+    # explicit preflight this handler also approves per-request below.
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Headers'] = 'Authorization, Content-Type'
+    return response
+
+
+@app.route('/api/<path:_any>', methods=['OPTIONS'])
+def preflight(_any):
+    return ('', 204)
+
+
 @app.get('/health')
 def health():
     return jsonify(ok=True, service='mesh-console-backend', ts=utcnow())
