@@ -9,7 +9,10 @@ services:
       dockerfile: Dockerfile
     container_name: mesh-console-backend
     ports:
-      - "127.0.0.1:5180:5180"
+      # All interfaces (LAN + overlay reachable). Reads are public-safe
+      # data; /api/actions stays bearer-gated regardless of bind.
+      # On hostile networks, narrow to 127.0.0.1 or the overlay IP.
+      - "5180:5180"
     environment:
       - MESH_STATE_DIR=/mesh-state
       - MESH_HOST_CERT=/certs/ssh_host_ed25519_key-cert.pub
