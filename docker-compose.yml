@@ -9,7 +9,18 @@ services:
       dockerfile: Dockerfile
     container_name: mesh-console-backend
     ports:
-      - "5180:5180"
+      - "127.0.0.1:5180:5180"
+    environment:
+      - MESH_STATE_DIR=/mesh-state
+      - MESH_HOST_CERT=/certs/ssh_host_ed25519_key-cert.pub
+      # MESH_CONSOLE_TOKEN unset => /api/actions 401s (fail closed).
+      # Set it via env_file (mode 0600, gitignored), never in this file.
+    volumes:
+      # Read-only host mounts. PUBLIC/operational data only: mesh state
+      # logs + the host SSH *certificate* (public key material). Secrets
+      # (api.env, private keys) are NEVER mounted here by design.
+      - ~/.local/state/mesh-recover:/mesh-state:ro
+      - /etc/ssh/ssh_host_ed25519_key-cert.pub:/certs/ssh_host_ed25519_key-cert.pub:ro
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5180/health', timeout=8)"]

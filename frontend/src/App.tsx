@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import SecurityPanel from './components/SecurityPanel'
 import { fetchMeshStatus } from './services/meshApi'
 import type { MeshStatus } from './types'
 import './App.css'
@@ -47,6 +48,7 @@ export default function App() {
           </ul>
         )}
       </section>
+      <SecurityPanel />
     </main>
   )
 }
