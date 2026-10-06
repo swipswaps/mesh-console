@@ -80,10 +80,11 @@ export default function App() {
         (Object.keys(LABELS) as (keyof typeof LABELS)[]).map((key) =>
           status.sources[key] === 'offline' ? (
             <p key={key} className="hint">
-              {LABELS[key]} offline. {HINTS[key]}{' '}
+              {LABELS[key]} offline.{' '}
               <button type="button" onClick={() => setShowHelp(showHelp === key ? null : key)}>
                 {showHelp === key ? 'hide' : 'why?'}
               </button>
+              {showHelp === key ? ` ${HINTS[key]}` : null}
             </p>
           ) : null,
         )}
