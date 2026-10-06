@@ -11,6 +11,14 @@ const INITIAL: MeshStatus = {
 
 const LABELS = { mirror: 'Public mirror', registry: 'Private registry', local: 'Local backend' } as const
 
+function summaryLine(status: MeshStatus): string {
+  const live = (Object.keys(LABELS) as (keyof typeof LABELS)[]).filter(
+    (key) => status.sources[key] === 'live',
+  )
+  if (live.length === 0) return 'All sources offline — showing fixtures, not data.'
+  return `Live via ${live.map((key) => LABELS[key]).join(', ')}.`
+}
+
 export default function App() {
   const [status, setStatus] = useState<MeshStatus>(INITIAL)
 
@@ -27,7 +35,7 @@ export default function App() {
   return (
     <main className="app">
       <h1>Mesh Console</h1>
-      <p className="sub">All sources offline — showing fixtures, not data.</p>
+      <p className="sub">{summaryLine(status)}</p>
       <section className="badges">
         {(Object.keys(LABELS) as (keyof typeof LABELS)[]).map((key) => (
           <span key={key} className={`badge badge-${status.sources[key]}`}>

@@ -7,6 +7,7 @@ user-scoped sources; writes ride memory-only credentials or
 node-initiated polling.
 
 - Live site: https://swipswaps.github.io/mesh-console/
+- User guide (with screenshots): `docs/user-guide.md`
 - API contract: `docs/api-contract.md`
 - Local backend: `docker compose up -d` → http://127.0.0.1:5180/health
   (loopback-only by default; bearer-gated `/api/actions` via
