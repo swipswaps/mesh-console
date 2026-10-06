@@ -1,6 +1,25 @@
-import type { MeshNode, MeshStatus, SourceState } from '../types'
+import type { MeshStatus, SourceState } from '../types'
 
 const STALE_MS = 10 * 60 * 1000
+const BACKEND_KEY = 'mesh-console.backend-origin'
+// A backend *address* is not a secret (reachability, not authority),
+// so persisting it in localStorage is safe. Tokens never go here.
+export function savedBackendOrigin(): string | null {
+  try {
+    return window.localStorage.getItem(BACKEND_KEY)
+  } catch {
+    return null
+  }
+}
+
+export function saveBackendOrigin(origin: string | null): void {
+  try {
+    if (origin) window.localStorage.setItem(BACKEND_KEY, origin)
+    else window.localStorage.removeItem(BACKEND_KEY)
+  } catch {
+    // storage unavailable (private mode) — session-only fallback
+  }
+}
 
 interface MirrorDoc {
   nodes?: Record<string, { lan?: string | null; overlay?: string | null; updated_utc?: string | null }>
@@ -14,11 +33,11 @@ function ageState(updatedUtc: string | null | undefined, now: number): SourceSta
   return now - t > STALE_MS ? 'stale' : 'live'
 }
 
-async function fetchMirror(now: number): Promise<{ nodes: MeshNode[]; state: SourceState }> {
+async function fetchMirror(now: number): Promise<{ nodes: MeshStatus['nodes']; state: SourceState }> {
   const res = await fetch(`${import.meta.env.BASE_URL}endpoints.json`, { cache: 'no-store' })
   if (!res.ok) throw new Error(`mirror http ${res.status}`)
   const doc = (await res.json()) as MirrorDoc
-  const nodes: MeshNode[] = Object.entries(doc.nodes ?? {}).map(([name, info]) => ({
+  const nodes = Object.entries(doc.nodes ?? {}).map(([name, info]) => ({
     name,
     lan: info.lan ?? null,
     overlay: info.overlay ?? null,
@@ -32,16 +51,15 @@ async function fetchMirror(now: number): Promise<{ nodes: MeshNode[]; state: Sou
   return { nodes, state }
 }
 
-// Local backend only attempted on non-HTTPS origins (dev/preview):
-// a public HTTPS page cannot reach LAN http without mixed-content
-// blocks, so on Pages this path is offline by construction, not by bug.
-async function fetchLocal(): Promise<SourceState> {
-  if (window.location.protocol !== 'http:') return 'offline'
+function defaultBackendOrigin(): string | null {
+  if (window.location.protocol !== 'http:') return null
+  return `http://${window.location.hostname}:5180`
+}
+
+async function fetchLocal(origin: string | null): Promise<SourceState> {
+  if (!origin) return 'offline'
   try {
-    const res = await fetch(
-      `http://${window.location.hostname}:5180/api/status`,
-      { signal: AbortSignal.timeout(4000) },
-    )
+    const res = await fetch(`${origin}/api/status`, { signal: AbortSignal.timeout(4000) })
     if (!res.ok) return 'stale'
     await res.json()
     return 'live'
@@ -54,7 +72,7 @@ async function fetchLocal(): Promise<SourceState> {
 // Registry stays offline until login lands; local degrades honestly.
 export async function fetchMeshStatus(): Promise<MeshStatus> {
   const now = Date.now()
-  let nodes: MeshNode[] = []
+  let nodes: MeshStatus['nodes'] = []
   let mirror: SourceState = 'offline'
   try {
     const m = await fetchMirror(now)
@@ -63,7 +81,7 @@ export async function fetchMeshStatus(): Promise<MeshStatus> {
   } catch {
     mirror = 'offline'
   }
-  const local = await fetchLocal()
+  const local = await fetchLocal(savedBackendOrigin() ?? defaultBackendOrigin())
   return { nodes, sources: { mirror, registry: 'offline', local } }
 }
 
